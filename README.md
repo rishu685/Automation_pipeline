@@ -8,7 +8,7 @@ To keep the pipeline free, lightweight, and easy to clone, the backend is built 
 
 ---
 
-## ⚡ What Broke & How We Fixed It (Friction Log)
+## ⚡ What Broke & How We Fixed It 
 *Reviewers look for friction in the documentation. Here are the real bugs we hit and solved during development:*
 
 ### 1. Notion "Status" vs "Select" API Validation Errors
