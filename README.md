@@ -9,7 +9,7 @@ To keep the pipeline free, lightweight, and easy to clone, the backend is built 
 ---
 
 ## ⚡ What Broke & How We Fixed It 
-*Reviewers look for friction in the documentation. Here are the real bugs we hit and solved during development:*
+*  real bugs we hit and solved during development:*
 
 ### 1. Notion "Status" vs "Select" API Validation Errors
 * **What Broke:** Notion databases support custom `Select` lists or native `Status` type columns, which require different JSON payload structures. Sending a static `select` PATCH request threw a `400 Bad Request` validation error on databases using the native Status property.
