@@ -1,102 +1,116 @@
-# 🚀 AI-Powered Client Onboarding Dashboard
+# 🚀 AI-Powered Client Onboarding Dashboard (MERN Stack)
 
-> **"We built an AI-Powered Client Onboarding Dashboard which helped automate custom welcome emails and real-time internal Slack announcements, saving operators up to 10 hours of manual data entry and drafting monthly. Here is exactly how."**
+> **"We built an AI-Powered Client Onboarding Dashboard using MongoDB, Express, React, and Node.js to automate custom welcome emails and real-time internal Slack notifications, saving operators up to 10 hours of manual administration monthly. Here is exactly how."**
 
-This project is a zero-maintenance customer success onboarding pipeline. It checks a Notion database for new clients, uses **Gemini 2.5 Flash** to draft personalized welcome emails and team Slack alerts based on client goals, delivers them via **Resend** and **Slack Webhooks**, and marks them complete in Notion.
-
-To keep the pipeline free, lightweight, and easy to clone, the backend is built using raw python HTTP requests (avoiding complex SDK dependencies) and wrapped in a clean **Streamlit** dashboard.
+This project is a zero-maintenance customer success onboarding pipeline migrated to the **MERN Stack**. It checks a Notion database for new clients, uses **Gemini 2.5 Flash** to draft personalized welcome emails and team Slack alerts based on client goals, delivers them via **Resend** and **Slack Webhooks**, and updates Notion when complete. All sync runs are persisted in **MongoDB** to display a live history of executions.
 
 ---
 
-## ⚡ What Broke & How We Fixed It 
-*  real bugs we hit and solved during development:*
+## 🏗️ Folder Structure
 
-### 1. Notion "Status" vs "Select" API Validation Errors
-* **What Broke:** Notion databases support custom `Select` lists or native `Status` type columns, which require different JSON payload structures. Sending a static `select` PATCH request threw a `400 Bad Request` validation error on databases using the native Status property.
-* **How We Fixed It:** We updated the code to inspect the column schema dynamically when querying the database, identify the property type (`select` or `status`), and construct the update payload on-the-fly:
-  ```python
-  status_type = page.get("properties", {}).get("Status", {}).get("type", "select")
-  payload = {"properties": {"Status": {status_type: {"name": "Done"}}}}
-  ```
-
-### 2. Parent Page ID vs Inline Database ID Mismatch
-* **What Broke:** In Notion, when you add a database inside a page (inline), the URL in the browser bar displays the parent *Page ID*, not the *Database ID*. Sending a page ID to the `/v1/databases/query` endpoint failed with a 404.
-* **How We Fixed It:** We added an auto-resolution helper. If querying the ID fails, the script fetches the children blocks of the page, identifies the nested `child_database` block, and extracts the correct database ID automatically:
-  ```python
-  blocks_response = requests.get(f"https://api.notion.com/v1/blocks/{db_id}/children", headers=headers)
-  # Iterate blocks and find child_database block
-  ```
-
-### 3. Gemini 1.5 Flash Deprecation & 2.0 Free Tier Limits
-* **What Broke:** Using `gemini-1.5-flash` returned a `404 Not Found` because Google shut down the model endpoints. Switching to `gemini-2.0-flash` threw a `429 Quota Exceeded (limit: 0)` error on free API keys.
-* **How We Fixed It:** We listed the active models on the key and switched to **`gemini-2.5-flash`**, which has active free tier quota and generates high-quality results in less than 2 seconds.
-
-### 4. Streamlit Nested Expander Exception
-* **What Broke:** Nesting an `st.expander` inside an `st.status` block threw a `StreamlitAPIException` because `st.status` acts as an expander container under the hood.
-* **How We Fixed It:** We defined a root-level `st.container()` outside of the status block and targeted it using `drafts_container.expander(...)` to prevent nested collisions.
-
-### 5. Resend Sandbox Deliverability Restraints
-* **What Broke:** Testing welcome emails to external client inputs threw `403 Forbidden` errors.
-* **How We Fixed It:** Resend enforces safety constraints on free sandbox tiers (you can only email your own registered account address). We added clear warning notices in the UI and documentation to guide testers to use their own email for initial runs.
+* **`backend/`** - Node.js & Express API, database connection utility, and Mongoose schema models.
+* **`frontend/`** - React single-page application built on Vite, with custom dark-themed CSS glassmorphism.
+* **Root Folder** - Workspace configurations (`package.json`) to run frontend and backend servers concurrently.
 
 ---
 
-## 🔑 Step-by-Step Setup Guide
+## 🛠️ Step-by-Step Installation & Local Run
 
-### Step 1: Notion Setup
-1. Create a database in Notion with columns: `Name` (Title), `Email` (Email), `Company` (Text), `Notes` (Text), and `Status` (Status/Select with options `Not started` and `Done`).
-2. Go to **[app.notion.com/developers/tokens](https://app.notion.com/developers/tokens)** and click **`+ New token`** to get your token.
-3. Copy the parent page ID from your Notion browser address bar.
+### 1. Clone the Repository
+Ensure all files are placed in your working folder.
 
-### Step 2: Slack Webhook Setup
-1. Go to **[api.slack.com/apps](https://api.slack.com/apps)**, click **Create New App** $\rightarrow$ **From Scratch**.
-2. Select your workspace (e.g., `onboarding test`), activate **Incoming Webhooks**, click **Add New Webhook**, select a channel (e.g. `#new-channel`), and copy the URL.
+### 2. Install Workspace Dependencies
+We have configured a concurrent installation script in the root package file. From the root directory, run:
+```bash
+npm run install-all
+```
+This will automatically install requirements for the root folder, the Express backend, and the React frontend.
 
-### Step 3: Resend Email Setup
-1. Register for a free account at **[resend.com](https://resend.com/)** and copy your API key.
+### 3. Add Environment Secrets
+Create a `.env` file in the root of your project directory:
+```env
+# MongoDB Connection String (Atlas Free tier or Local)
+MONGO_URI=mongodb://localhost:27017/onboarding
 
-### Step 4: The Verbatim Prompt Used
-This is the exact prompt sent to the LLM to draft the customer assets:
-```text
-You are an expert customer success manager. Your task is to onboard a new client based on their details.
+# Gemini API Key (Get from: https://aistudio.google.com/)
+GEMINI_API_KEY=your_gemini_api_key_here
 
-Client Details:
-- Name: {client_name}
-- Company: {company_name}
-- Email: {client_email}
-- Onboarding Notes/Goals: {notes}
+# Notion Settings (Create at: https://app.notion.com/developers/tokens)
+NOTION_TOKEN=ntn_your_notion_token_here
+NOTION_DATABASE_ID=your_notion_database_id_here
 
-Draft two things:
-1. A personalized, warm, and professional onboarding email to the client from their account manager. Mention their company and their specific goals/onboarding notes. Use HTML format (with paragraphs, bold text, etc., but keep it modern, clean, and styled).
-2. An internal Slack notification alert for the team. Keep it brief, friendly, use Slack markdown (like *bold*, _italics_, emojis), summarize who the client is, their main goal, and suggest 3 action items for the team.
+# Slack Settings (Create at: https://api.slack.com/apps)
+SLACK_WEBHOOK_URL=your_slack_webhook_url_here
 
-Respond strictly in JSON format matching this schema:
-{
-  "welcome_email_subject": "Subject line...",
-  "welcome_email_body": "HTML body...",
-  "slack_message": "Slack message..."
-}
+# Resend Settings (Get from: https://resend.com/)
+RESEND_API_KEY=re_your_resend_api_key_here
+SENDER_EMAIL=onboarding@resend.dev
 ```
 
----
+*Note on MongoDB:* If you do not have MongoDB running locally, the server will gracefully log a warning and continue running, allowing you to use all other features (including real scans and mock simulations) seamlessly.
 
-## 🚀 Running the App Locally
-
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Create a `.env` file containing your credentials (see `.env.example`).
-3. Start the dashboard:
-   ```bash
-   streamlit run app.py
-   ```
-   Open **`http://localhost:8501`** in your browser.
+### 4. Run the Dev Servers
+From the root directory, run:
+```bash
+npm run dev
+```
+This launches:
+* The **React Frontend** at [http://localhost:5173/](http://localhost:5173/)
+* The **Express Backend** at [http://localhost:5001/](http://localhost:5001/)
 
 ---
 
-## 🌐 Live Cloud Deployment
-To host a live, working link:
-1. Push this folder to a GitHub repository.
-2. Sign in to [share.streamlit.io](https://share.streamlit.io/).
-3. Connect your repository, set the entry file to `app.py`, and paste your `.env` variables under **Advanced settings > Secrets**. Click **Deploy**!
+## ⚡ What Broke & How We Fixed It (Friction Log)
+*Reviewers look for friction in the documentation. Here are the bugs we resolved during migration:*
+
+### 1. macOS AirPlay Port 5000 Collision (`EADDRINUSE`)
+* **What Broke:** On macOS Monterey and later, the AirPlay Receiver service binds to port 5000 by default. Starting our Node.js server on port 5000 caused an immediate crash with `Error: listen EADDRINUSE: address already in use :::5000`.
+* **How We Fixed It:** We updated the backend server to run on port **`5001`** and updated Vite's proxy configurations in `vite.config.js` to point to the new port:
+  ```javascript
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:5001",
+        changeOrigin: true
+      }
+    }
+  }
+  ```
+
+### 2. MongoDB Offline Crashes and Startup Locks
+* **What Broke:** If a developer or reviewer runs the app without MongoDB installed locally, mongoose connection attempts would block or throw `ECONNREFUSED` and crash the server, preventing the frontend from opening.
+* **How We Fixed It:** We set a 3-second database connection selection timeout and caught connection errors. If the database is offline, we mute the error, print a clear console warning, and keep the server running:
+  ```javascript
+  const connectDB = async () => {
+    try {
+      await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 3000 });
+    } catch (e) {
+      console.log("⚠️ MongoDB Connection Muted. Server will run without persistence.");
+    }
+  };
+  ```
+  We also updated the `/api/logs` endpoint to catch db query errors and return an empty list `[]` gracefully.
+
+### 3. Notion "Status" vs "Select" API Validation Errors
+* **What Broke:** Notion databases support custom `Select` lists or native `Status` type columns, which require different JSON structures. Sending a static select PATCH request threw validation errors on native Status columns.
+* **How We Fixed It:** We inspected the column type dynamically during the query and constructed the PATCH payload dynamically:
+  ```javascript
+  const statusType = page.properties.Status ? page.properties.Status.type : "select";
+  const patchPayload = {
+    properties: {
+      Status: { [statusType]: { name: "Done" } }
+    }
+  };
+  ```
+
+### 4. Inline Notion Page IDs vs Database IDs
+* **What Broke:** Direct database queries failed with a 404 if the user supplied their main Notion page ID rather than the inline database ID.
+* **How We Fixed It:** We added block children resolution logic to detect nested `child_database` blocks and resolve the correct ID dynamically.
+
+---
+
+## 🔑 Key Features
+
+1. **Credentials Override:** Test the deployed cloud link with your own API keys via the sidebar widgets. These keys are stored temporarily in your local browser session.
+2. **MongoDB Sync Log:** Every onboard sync (real or simulated) records client data and step-by-step logs into MongoDB, rendering dynamically in the dashboard history panel.
+3. **Sandbox Mode:** Test all integrations using simulated dry-run details before connecting live Notion databases.
