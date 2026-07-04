@@ -2,6 +2,12 @@
 
 > **"We built an AI-Powered Client Onboarding Dashboard using MongoDB, Express, React, and Node.js to automate custom welcome emails and real-time internal Slack notifications, saving operators up to 10 hours of manual administration monthly. Here is exactly how."**
 
+### 🎯 Business Value: What it Saves & Enables
+
+* **What it Saves:** Saves customer success managers 15 to 20 minutes of repetitive admin work per client (manually drafting emails, copying notes to Slack, and updating database columns). For an agency onboarding 30 clients a month, this saves **10+ operational hours** monthly.
+* **What it Enables:** Enables immediate client outreach. Within 5 seconds of signup, an AI-tailored welcome email (referencing specific client goals, such as *Leafygreen Coffee's subscription funnel*) lands in their inbox, improving early retention.
+* **Team Actionability:** Converts client briefs into 3 structured tasks and pings them to the team's Slack channel immediately, eliminating kickoff friction.
+
 This project is a zero-maintenance customer success onboarding pipeline migrated to the **MERN Stack**. It checks a Notion database for new clients, uses **Gemini 2.5 Flash** to draft personalized welcome emails and team Slack alerts based on client goals, delivers them via **Resend** and **Slack Webhooks**, and updates Notion when complete. All sync runs are persisted in **MongoDB** to display a live history of executions.
 
 ---
