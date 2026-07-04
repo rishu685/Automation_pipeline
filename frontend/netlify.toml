@@ -1,0 +1,13 @@
+# Netlify configuration file for MERN Stack deployment
+# This proxies frontend /api calls to the deployed backend server.
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-render-backend-url.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
