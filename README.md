@@ -114,3 +114,29 @@ This launches:
 1. **Credentials Override:** Test the deployed cloud link with your own API keys via the sidebar widgets. These keys are stored temporarily in your local browser session.
 2. **MongoDB Sync Log:** Every onboard sync (real or simulated) records client data and step-by-step logs into MongoDB, rendering dynamically in the dashboard history panel.
 3. **Sandbox Mode:** Test all integrations using simulated dry-run details before connecting live Notion databases.
+
+---
+
+## 🌐 MERN Cloud Deployment Guide
+
+To deploy this full-stack project to the cloud for free, follow this two-part guide:
+
+### Part 1: Deploy Backend (Render - Free)
+1. Sign up for a free account at [render.com](https://render.com/).
+2. Create a new **Web Service** and connect it to your GitHub repository.
+3. Configure the build and start settings:
+   * **Build Command:** `npm run install-all`
+   * **Start Command:** `node backend/server.js`
+4. Under **Environment**, add the environment variables from your `.env` file (`MONGO_URI`, `GEMINI_API_KEY`, `NOTION_TOKEN`, etc.).
+   * *Tip:* Create a free shared cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) to get a production database URI for `MONGO_URI`.
+5. Deploy! Copy the assigned Render URL (e.g., `https://automation-pipeline-backend.onrender.com`).
+
+### Part 2: Deploy Frontend (Netlify - Free)
+1. Sign up for a free account at [netlify.com](https://netlify.com/).
+2. Click **Add new site** -> **Import an existing project** and link your GitHub repository.
+3. Configure the build settings:
+   * **Base Directory:** `frontend`
+   * **Build Command:** `npm run build`
+   * **Publish Directory:** `dist`
+4. Open the root [`netlify.toml`](file:///Users/apple/Desktop/ai%20pilot/netlify.toml) file in your workspace. Under redirects, replace the dummy URL `https://your-render-backend-url.onrender.com` with your actual Render URL from Part 1. Save, commit, and push this change to GitHub.
+5. Netlify will deploy the frontend! The redirect rules inside the `netlify.toml` file will automatically route all `/api/*` calls from your Netlify page directly to your Render backend, resolving any CORS errors.
